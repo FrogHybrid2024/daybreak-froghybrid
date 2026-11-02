@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daybreak</title>
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Daybreak">
+<meta property="og:description" content="A live, fully onchain artwork by FrogHybrid, played straight from its NFT on Robinhood Chain.">
+<meta name="description" content="A live, fully onchain artwork by FrogHybrid, played straight from its NFT on Robinhood Chain.">
+<meta property="og:url" content="https://daybreak-froghybrid.pages.dev/">
+<meta property="og:image" content="https://daybreak-froghybrid.pages.dev/daybreak.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://daybreak-froghybrid.pages.dev/daybreak.jpg">
+<style>html, body { margin: 0; height: 100%; background: #000; }</style>
+</head>
+<body>
+<script>
+// Daybreak by FrogHybrid: this page plays the artwork straight from its NFT on Robinhood Chain
+// (Daybreak, DAYBREAK, contract 0xD2A3DB54Abc4F3A292bB91dBe06Da93f18A4dcB7, token 1).
+// It asks the chain for the stored page, checks it is the exact finished file (its SHA-256 fingerprint below), and writes it
+// into this page, so NODE's ?surface=... stays in the address and the piece knows which screen it is on.
+// If the chain does not answer in time, answers with an error, or sends anything else (it tries twice within 15 s), it plays
+// the saved copy (/art/, a folder, so no host rewrites the address and drops ?surface=).
+(() => {
+  const RPC = "https://rpc.mainnet.chain.robinhood.com";
+  const CONTRACT = "0xD2A3DB54Abc4F3A292bB91dBe06Da93f18A4dcB7";
+  const PAGE_BASE64 = "0x24dd0a60";          // pageBase64(): the stored page, base64 text
+  const SHA256 = "496d6984f068e9435492233cd3db710ffd5160559354e09c7ed0221f61673da7";               // fingerprint of the finished file (index.html), same bytes as in the NFT
+  const WAIT_MS = 15000;                     // how long to wait for the chain, in all, before playing the saved copy
+  const deadline = Date.now() + WAIT_MS;
+  const saved = () => location.replace("/art/" + location.search + location.hash);
+
+  // Ask the chain for the stored page, check it and return it as text; throws on anything unexpected.
+  async function readFromNft() {
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), Math.max(0, deadline - Date.now()));
+    try {
+      const r = await fetch(RPC, { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctl.signal,
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to: CONTRACT, data: PAGE_BASE64 }, "latest"] }) });
+      if (!r.ok) throw new Error("chain answered " + r.status);
+      const j = await r.json();
+      const hex = j && j.result;
+      if (typeof hex !== "string" || hex.length < 130) throw new Error("no page in the answer");
+      // ABI string: offset (32 bytes), length (32 bytes), then the text
+      const len = parseInt(hex.slice(66, 130), 16), start = 130;
+      if (!(len > 0) || hex.length < start + len * 2) throw new Error("short answer");
+      let b64 = "";
+      for (let i = 0; i < len; i++) b64 += String.fromCharCode(parseInt(hex.substr(start + i * 2, 2), 16));
+      const bin = atob(b64), bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+      const got = Array.from(digest, b => b.toString(16).padStart(2, "0")).join("");
+      if (got !== SHA256) throw new Error("fingerprint does not match");
+      return new TextDecoder("utf-8").decode(bytes);
+    } finally { clearTimeout(timer); }
+  }
+
+  (async () => {
+    let html = null, why = "";
+    for (let attempt = 1; attempt <= 2 && !html; attempt++) {    // one retry after a second, inside the same 15 s
+      try { html = await readFromNft(); }
+      catch (e) { why = (e && e.message) || String(e); if (attempt === 1 && deadline - Date.now() > 3000) await new Promise(r => setTimeout(r, 1000)); else break; }
+    }
+    if (!html) { console.log("Daybreak: playing the saved copy (" + why + ")"); saved(); return; }
+    console.log("Daybreak: playing from the NFT on Robinhood Chain");
+    try { document.open(); document.write(html); document.close(); }
+    catch (e) { saved(); }
+  })();
+})();
+</script>
+</body>
+</html>
