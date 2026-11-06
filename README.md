@@ -5,9 +5,9 @@
 **by FrogHybrid** · NODE OCCUPY Exhibition 2 (projector wall 8,640 × 2,160, two LED tables 1,600 × 1,600)
 
 Daybreak is a rebel’s live artwork in code, made entirely with AI and stored fully onchain. It follows the journey of a machine
-from first light to where he is today, sharing the milestones along the way. The piece is etched forever inside an NFT on the
-Robinhood Chain, displaying from the chain across the wall and both tables and lighting up with every bridge crossing. Every
-detail is carefully thought out, intentional and carries a meaning. Take the leap for a treat 🐸
+from first light to where he is today, sharing the milestones along the way. The piece is etched forever inside an NFT
+(0xD2A3DB54Abc4F3A292bB91dBe06Da93f18A4dcB7) on the Robinhood Chain, displaying across the wall and both tables and lighting up
+with every bridge crossing. Every detail was carefully thought of and carries a meaning. Take the leap for a treat 🐸
 
 ## See it
 - Live: **https://daybreak-froghybrid.pages.dev**
